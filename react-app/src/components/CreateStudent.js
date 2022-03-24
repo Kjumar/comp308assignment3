@@ -3,24 +3,30 @@ import axios from 'axios';
 import {Spinner, Form, Button, Container} from 'react-bootstrap';
 import { withRouter } from 'react-router-dom';
 
+import {gql, useQuery, useMutation} from "@apollo/client";
+
+const ADD_STUDENT = gql`
+  mutation addStudent($studentNumber: Int!, $firstName: String!, $lastName: String!, $address: String!, $city: String!, $phoneNumber: String!, $email: String!, $password: String!) {
+    addStudent(studentNumber: $studentNumber, firstName: $firstName, lastName: $lastName, address: $address, city: $city, phoneNumber: $phoneNumber, email: $email, password: $password) {
+      studentNumber
+      firstName
+      lastName
+      address
+      city
+      phoneNumber
+      email
+      password
+    }
+  }
+`;
+
 function CreateStudent(props) {
-  const [student, setStudent] = useState({ _id: '', firstName: '', lastName: '', 
+  const [student, setStudent] = useState({ studentNumber: '', firstName: '', lastName: '', 
                 address: '', city: '', phoneNumber: '', email: '',password: '' });
   const [showLoading, setShowLoading] = useState(false);
   const apiUrl = "http://localhost:3000/";
 
-  const saveStudent = (e) => {
-    setShowLoading(true);
-    e.preventDefault();
-    const data = { studentNumber: student.studentNumber, firstName: student.firstName, lastName: student.lastName, 
-      address: student.address, city: student.city, phoneNumber: student.phoneNumber,
-      email: student.email, password: student.password };
-    axios.post(apiUrl, data)
-      .then((result) => {
-        setShowLoading(false);
-        props.history.push('/show/' + result.data._id)
-      }).catch((error) => setShowLoading(false));
-  };
+  const [onHandleRegister, { loading, err, data }] = useMutation(ADD_STUDENT);
 
   const onChange = (e) => {
     e.persist();
@@ -36,7 +42,7 @@ function CreateStudent(props) {
       } 
       <Container>
       <h1 className="mt-3">Create New Student</h1>
-        <Form onSubmit={saveStudent}>
+        <Form>
           <Form.Group className='mb-2'>
             <Form.Label>Student Number</Form.Label>
             <Form.Control type="text" name="studentNumber" id="studentNumber" rows="3" placeholder="Enter student number" value={student.studentNumber} onChange={onChange} />
@@ -69,13 +75,36 @@ function CreateStudent(props) {
             <Form.Label>Password</Form.Label>
             <Form.Control type="password" name="password" id="password" placeholder="Enter password" value={student.password} onChange={onChange} />
           </Form.Group>
-          
-          <Form.Group className='mt-3 mb-3'>
-          <Button variant="primary" type="submit">
-            Save
-          </Button>
-          </Form.Group>
         </Form>
+        <Button variant="primary" onClick={() => {
+          setShowLoading(true);
+          onHandleRegister({
+            variables: {
+              studentNumber: parseInt(student.studentNumber),
+              firstName: student.firstName,
+              lastName: student.lastName,
+              address: student.address,
+              city: student.city,
+              phoneNumber: student.phoneNumber,
+              email: student.email,
+              password: student.password
+            }
+          }).then((data) => {
+            setShowLoading(false);
+            props.history.push('/show/' + data.id);
+            window.location.reload();
+          }).catch((err) => {
+            if (err)
+            {
+              console.log(err);
+            }
+            setShowLoading(false);
+            props.history.push('/students');
+            window.location.reload();
+          });
+        }} >
+          Save
+        </Button>
       </Container>
     </div>
   );

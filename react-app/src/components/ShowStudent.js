@@ -2,63 +2,102 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {Spinner, Jumbotron, Button, ListGroup} from 'react-bootstrap';
 import { withRouter } from 'react-router-dom';
+import Login from './Login';
+
+import { useAuthToken, useAuthUserToken } from "../config/auth";
+import {gql, useQuery, useMutation} from "@apollo/client";
+
+const GET_STUDENT = gql`
+query student($studentId: String!) {
+  student(id: $studentId) {
+    id
+    studentNumber
+    firstName
+    lastName
+    address
+    city
+    phoneNumber
+    email
+    
+  }
+}
+`;
+
+const DELETE_STUDENT = gql`
+mutation deleteStudent($studentId: String!) {
+  deleteStudent(id: $studentId) {
+    id
+  }
+}
+`;
+
+const GET_COURSES = gql`
+query enrolledCourses($studentId: String!) {
+    enrolledCourses(id: $studentId) {
+      id
+      courseCode
+      courseName
+      semester
+      section
+    }
+}
+`;
 
 function ShowStudent(props) {
-  const [data, setData] = useState({});
   const [courses, setCourses] = useState([]);
-  const [showLoading, setShowLoading] = useState(true);
-  const apiUrl = "http://localhost:5000/students/" + props.match.params.id;
+  const [showLoading, setShowLoading] = useState(false);
+  const studentId = props.match.params.id;
 
-  useEffect(() => {
-    setShowLoading(false);
-    const fetchData = async () => {
-      const result = await axios(apiUrl);
-      setData(result.data);
-      setShowLoading(false);
-      console.log(result.data);
-    };
+  const [authToken] = useAuthToken()
+  const [authUserToken] = useAuthUserToken()
 
-    fetchData();
-  }, [apiUrl]);
+  const { loading, error, data } = useQuery(GET_STUDENT,
+    {
+      variables: {studentId: studentId}
+    });
+
+  const { courseLoading, courseErr, courseData, refetch } = useQuery(GET_COURSES, {variables: { studentId: studentId },
+    onCompleted: (result) => {
+      console.log(result);
+      setCourses(result.enrolledCourses);
+    }
+  });
+  
+  const [onDeleteHandler] = useMutation(DELETE_STUDENT);
+    
+  if (!authToken)
+  {
+    return (
+      <div>
+        <Login />
+      </div>
+    )
+  }
+
+  if (loading)
+  {
+    return (
+      <div>
+        <Jumbotron>
+          {showLoading && <Spinner animation="border" role="status">
+            <span className="sr-only">Loading...</span>
+          </Spinner> }
+        </Jumbotron>
+      </div>
+    );
+  }
+
+  // TODO: make a nicer error page
+  if (error) 
+  {
+    return <p>Error...</p>;
+  }
 
   const editStudent = (id) => {
     props.history.push({
       pathname: '/edit/' + id
     });
   };
-
-  const deleteStudent = (id) => {
-    setShowLoading(true);
-    const student = { studentNumber: data.studentNumber, firstName: data.firstName, lastName: data.lastName,
-        address: data.address, city: data.city, phoneNumber: data.phoneNumber,
-      email: data.email, username: data.username, password: data.password };
-  
-    axios.delete(apiUrl, student)
-      .then((result) => {
-        setShowLoading(false);
-        props.history.push('/students')
-      }).catch((error) => setShowLoading(false));
-  };
-
-  // List Courses based upon students enrolled
-  const showEnrolledCourses = () => {
-    setShowLoading(true);
-    axios.put('/api/listcourses', { studentNumber: data.studentNumber }) //pass student number
-      .then((result) => {
-        setShowLoading(false);
-        if (result.data) //if theres courses in the data -> display, else -> dont display
-        {
-          setCourses(result.data);
-        }
-        else
-        {
-          setCourses([]);
-        }
-      }).catch((error) => {
-        setShowLoading(false);
-        console.log(error);
-      })
-  }
 
   // redirect to the course details page
   const showCourseDetail = (id) => {
@@ -73,16 +112,23 @@ function ShowStudent(props) {
         <span className="sr-only">Loading...</span>
       </Spinner> }    
       <Jumbotron>
-        <h1>Name: {data.firstName}, {data.lastName}</h1> 
-        <p>Email: {data.email}</p>
-        <p>Phone Number: {data.phoneNumber}</p>
-        <p>Address: {data.address}, {data.city}</p>
-        <p>Student Number: {data.studentNumber}</p>
+        <h1>Name: {data.student.firstName}, {data.student.lastName}</h1> 
+        <p>Email: {data.student.email}</p>
+        <p>Phone Number: {data.student.phoneNumber}</p>
+        <p>Address: {data.student.address}, {data.student.city}</p>
+        <p>Student Number: {data.student.studentNumber}</p>
 
         <p>
-          <Button type="button" variant="primary" onClick={() => { editStudent(data._id) }}>Edit</Button>&nbsp;
-          <Button type="button" variant="primary" onClick={() => { showEnrolledCourses() }} >View Courses</Button>&nbsp;
-          <Button type="button" variant="danger" onClick={() => { deleteStudent(data._id) }}>Delete</Button>
+          <Button type="button" variant="primary" onClick={() => { editStudent(data.student.id) }}>Edit</Button>&nbsp;
+          <Button type="button" variant="primary" onClick={() => refetch() } >View Courses</Button>&nbsp;
+          <Button type="button" variant="danger" onClick={() => { onDeleteHandler({
+            variables: {studentId: studentId},
+            onCompleted: () => {
+              setShowLoading(false);
+              props.history.push('/students');
+              window.location.reload();
+            }
+          }) }}>Delete</Button>
         </p>
 
         {courses.length !== 0
@@ -90,7 +136,7 @@ function ShowStudent(props) {
                     <Jumbotron>
                         <ListGroup>
                             {courses.map((item, idx) => (
-                            <ListGroup.Item key={idx} action onClick={() => { showCourseDetail(item._id) }}>
+                            <ListGroup.Item key={idx} action onClick={() => { showCourseDetail(item.id) }}>
                                 {item.courseCode} - {item.courseName} - {item.semester} - Sec. {item.section}
                             </ListGroup.Item>
                             ))}

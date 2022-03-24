@@ -3,42 +3,75 @@ import axios from 'axios';
 import {Spinner, Jumbotron, Button, ListGroup} from 'react-bootstrap';
 import { withRouter } from 'react-router-dom';
 
+import { useAuthToken, useAuthUserToken } from "../config/auth";
+import {gql, useQuery, useMutation} from "@apollo/client";
+
+
+const GET_COURSE = gql`
+  query course($courseId: String!) {
+    course(id: $courseId) {
+      id
+      courseCode
+      courseName
+      section
+      semester
+    }
+  }
+`;
+
+const DELETE_COURSE = gql`
+mutation deleteCourse($courseId: String!) {
+  deleteCourse(id: $courseId) {
+    id
+  }
+}
+`;
+
+const ENROLL_STUDENT = gql`
+mutation enrollStudent($studentId: String!, $courseId: String!) {
+  enrollStudent(studentId: $studentId, courseId: $courseId) {
+    id
+    courses
+  }
+}
+`;
+
+const GET_STUDENTS = gql`
+query enrolledStudents($courseId: String!) {
+  enrolledStudents(courseId: $courseId) {
+    id
+    studentNumber
+    firstName
+    lastName
+    email
+  }
+}
+`;
+
 function ShowCourse(props) {
-  console.log('props.match.params',props.match.params.id)
   const [screen, setScreen] = useState('auth');
-  const [data, setData] = useState({});
-  const [showLoading, setShowLoading] = useState(true);
+  const [showLoading, setShowLoading] = useState(false);
   const [students, setStudents] = useState([]);
-  const apiUrl = "http://localhost:3000/api/courses/" + props.match.params.id;
+  const courseId = props.match.params.id;
 
-  //check if the user already logged-in
-  const readCookie = async () => {
-    axios.get('/read_cookie')
-      .then(result => {
-        //check if the user has logged in
-        if(result.data.screen !== 'auth')
-        {
-          setScreen(result.data.screen);
-        }
-      }).catch((error) => {
-        console.log(error);
-        setScreen('auth');
-      });
-  };
+  const [authToken] = useAuthToken()
+  const [authUserToken] = useAuthUserToken()
 
-  useEffect(() => {
-    setShowLoading(false);
-    const fetchData = async () => {
-      const result = await axios(apiUrl);
-      console.log('results from courses',result.data);
+  const { loading, error, data } = useQuery(GET_COURSE, {
+    variables: { courseId: courseId }
+  });
 
-      setData(result.data);
-      setShowLoading(false);
-    };
+  const { refetch } = useQuery(GET_STUDENTS, {
+    variables: { courseId: courseId },
+    onCompleted: (result) => {
+      console.log(result);
+      setStudents(result.enrolledStudents);
+    }
+  })
 
-    fetchData();
-    readCookie();
-  }, [apiUrl]);
+  const [onHandleDelete] = useMutation(DELETE_COURSE);
+
+  const [onHandleEnroll] = useMutation(ENROLL_STUDENT);
 
   const editCourse = (id) => {
     props.history.push({
@@ -46,54 +79,29 @@ function ShowCourse(props) {
     });
   };
 
-  const deleteCourse = (id) => {
-    setShowLoading(true);
-    const course = { courseCode: data.courseCode, courseName: data.courseName, section: data.section, semester: data.semester };
-    //
-    axios.delete(apiUrl, course)
-      .then((result) => {
-        setShowLoading(false);
-        props.history.push('/courses')
-      }).catch((error) => setShowLoading(false));
-  };
-
-  const addCourse = (id) => {
-    setShowLoading(true);
-
-    const student = { studentNumber: screen };
-    const course = { _id: id, courseCode: data.courseCode, courseName: data.courseName, section: data.section, semester: data.semester };
-
-    axios.put('/api/addcourse', {course: course, student: student})
-      .then((result) => {
-        setShowLoading(false);
-        props.history.push('/courses');
-      }).catch((err) => {
-        setShowLoading(false);
-      });
-  }
-
-  // List Students based upon matching courses
-  const showEnrolledStudents = (id) => {
-    setShowLoading(true);
-    axios.get('/api/listcourses/' + id)
-      .then((result) => {
-        setShowLoading(false);
-        if (result.data) {
-          setStudents(result.data);
-        }
-        else {
-          setStudents([]);
-        }
-      }).catch((error) => {
-        setShowLoading(false);
-        console.log(error);
-      })
-  }
-
   const showStudent = (id) => {
     props.history.push({
       pathname: '/show/' + id
     });
+  }
+  
+  if (loading)
+  {
+    return (
+      <div>
+        <Jumbotron>
+          {showLoading && <Spinner animation="border" role="status">
+            <span className="sr-only">Loading...</span>
+          </Spinner> }
+        </Jumbotron>
+      </div>
+    );
+  }
+
+  // TODO: make a nicer error page
+  if (error)
+  {
+    return <p>Error...</p>;
   }
 
   return (
@@ -102,35 +110,50 @@ function ShowCourse(props) {
         <span className="sr-only">Loading...</span>
       </Spinner> }    
       <Jumbotron>
-        <h1>Course Name: {data.courseName}</h1>
-        <h2>Course Code: {data.courseCode}</h2>
-        <p>Section: {data.section}</p>
-        <p>Semester: {data.semester}</p>
+        <h1>Course Name: {data.course.courseName}</h1>
+        <h2>Course Code: {data.course.courseCode}</h2>
+        <p>Section: {data.course.section}</p>
+        <p>Semester: {data.course.semester}</p>
 
-        <p>
-          <Button type="button" variant="primary" onClick={() => { editCourse(data._id) }}>Edit</Button>&nbsp;
-          {screen !== 'auth'
-            ?
-            <Button type="button" variant="primary" onClick={() => { showEnrolledStudents(data._id) }}>View Classlist</Button>
-            :
-            null
-          }&nbsp;
-          {screen !== 'auth'
-            ?
-            <Button type="button" variant="primary" onClick={() => { addCourse(data._id) }}>Enroll</Button>
-            :
-            null
-          }&nbsp;
-          <Button type="button" variant="danger" onClick={() => { deleteCourse(data._id) }}>Delete</Button>
-        </p>
+        {authToken
+          ?
+          <p>
+            <Button type="button" variant="primary" onClick={() => { editCourse(data.course.id) }}>Edit</Button>&nbsp;
+            <Button type="button" variant="primary" onClick={() => { refetch() }}>View Classlist</Button>&nbsp;
+            <Button type="button" variant="primary" onClick={() => {
+              setShowLoading(true);
+              onHandleEnroll({
+                variables: { studentId: authUserToken, courseId: courseId }
+              }).then(() => {
+                setShowLoading(false);
+                props.history.push('/courses');
+                window.location.reload();
+              }).catch((err) => {
+                console.log(err);
+              });
+            }}>Enroll</Button>&nbsp;
+            <Button type="button" variant="danger" onClick={() => {
+              setShowLoading(true);
+              onHandleDelete({
+                variables: { courseId: courseId }
+              }).then(() => {
+                setShowLoading(false);
+                props.history.push('/courses');
+                window.location.reload();
+              });
+            }}>Delete</Button>
+          </p>
+          :
+          null
+        }
 
         {students.length !== 0
                     ?
                     <Jumbotron>
                         <ListGroup>
                             {students.map((item, idx) => (
-                            <ListGroup.Item key={idx} action onClick={() => { showStudent(item._id) }}>
-                                {item.fullName}
+                            <ListGroup.Item key={idx} action onClick={() => { showStudent(item.id) }}>
+                                {item.lastName}, {item.firstName}
                             </ListGroup.Item>
                             ))}
                         </ListGroup>

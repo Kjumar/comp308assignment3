@@ -19,26 +19,6 @@ import ListCourses from './components/ListCourses';
 import EditCourse from './components/EditCourse';
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState('auth');
-  //check if the user already logged-in
-  const readCookie = async () => {
-    axios.get('/read_cookie')
-      .then(result => {
-        //check if the user has logged in
-        if(result.data.screen !== 'auth')
-        {
-          setLoggedIn(result.data.screen);
-        }
-      }).catch((error) => {
-        console.log(error);
-        setLoggedIn('auth');
-      });
-  };
-  //runs the first time the view is rendered
-  //to check if user is signed in
-  useEffect(() => {
-    readCookie();
-  }, []); //only the first render
   //
   return (
     <Router>
@@ -47,12 +27,7 @@ function App() {
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="mr-auto">
             <Nav.Link href="/home">Home</Nav.Link>
-            {loggedIn === 'auth'
-              ?
-              <Nav.Link href="/login">Login</Nav.Link>
-              :
-              <Nav.Link href="/login">Profile</Nav.Link>
-            }
+            <Nav.Link href="/login">Login</Nav.Link>
             <Nav.Link href="/create">Sign Up</Nav.Link>
             <Nav.Link href="/students">Students</Nav.Link>
             <Nav.Link href="/courses">Courses</Nav.Link>

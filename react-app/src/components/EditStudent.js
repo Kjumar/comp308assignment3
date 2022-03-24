@@ -2,54 +2,93 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {Spinner, Jumbotron, Form, Button} from 'react-bootstrap';
 import { withRouter } from 'react-router-dom';
+import Login from './Login';
+
+import { useAuthToken, useAuthUserToken } from "../config/auth";
+import {gql, useQuery, useMutation} from "@apollo/client";
+
+const GET_STUDENT = gql`
+query student($studentId: String!) {
+  student(id: $studentId) {
+    id
+    firstName
+    lastName
+    address
+    city
+    phoneNumber
+    email
+
+  }
+}
+`;
+
+const UPDATE_STUDENT = gql`
+  mutation updateStudent($studentId: String!, $firstName: String!, $lastName: String!, $address: String!, $city: String!, $phoneNumber: String!, $email: String!){
+    updateStudent(id: $studentId, firstName: $firstName, lastName: $lastName, address: $address, city: $city, phoneNumber: $phoneNumber, email: $email){
+      firstName
+      lastName
+      address
+      city
+      phoneNumber
+      email
+    }
+  }
+`;
 
 function EditStudent(props) {
-    const [student, setStudent] = useState({ _id: '', firstName: '', lastName: '', 
-                address: '', city: '', phoneNumber: '', email: '',password: '' });  
-    const [showLoading, setShowLoading] = useState(true);
+    const [showLoading, setShowLoading] = useState(false);
     const apiUrl = "http://localhost:3000/students/" + props.match.params.id;
+    const studentId = props.match.params.id;
 
-    //runs only once after the first render
-    useEffect(() => {
-      setShowLoading(false);
-      //call api
-      const fetchData = async () => {
-        const result = await axios(apiUrl);
-        setStudent(result.data);
-        console.log(result.data);
-        setShowLoading(false);
-      };
-  
-      fetchData();
-    }, [apiUrl]);
-  
-    const updateStudent = (e) => {
-      setShowLoading(true);
-      e.preventDefault();
-      const data = { studentNumber: student.studentNumber, firstName: student.firstName, lastName: student.lastName, 
-        address: student.address, city: student.city, phoneNumber: student.phoneNumber,
-        email: student.email, password: student.password };
-      axios.put(apiUrl, data)
-        .then((result) => {
-          setShowLoading(false);
-          props.history.push('/show/' + result.data._id)
-        }).catch((error) => setShowLoading(false));
-    };
+    const [authToken] = useAuthToken()
+    const [authUserToken] = useAuthUserToken()
+
+    const { loading, error, data } = useQuery(GET_STUDENT, {
+      variables: {studentId: studentId}
+    });
+    
+    const [student, setStudent] = useState(data.student);
+
+    const [onUpdateHandler] = useMutation(UPDATE_STUDENT);
+    
     //runs when student enters a field
     const onChange = (e) => {
       e.persist();
       setStudent({...student, [e.target.name]: e.target.value});
     }
-  
+
+    if (!authToken)
+    {
+      return (
+        <div>
+          <Login />
+        </div>
+      )
+    }
+
+    if (loading)
+    {
+      return (
+        <div>
+          <Jumbotron>
+            {showLoading && <Spinner animation="border" role="status">
+              <span className="sr-only">Loading...</span>
+            </Spinner> }
+          </Jumbotron>
+        </div>
+      );
+    }
+
+    // TODO: make a nicer error page
+    if (error)
+    {
+      return <p>Error...</p>;
+    }
+
     return (
       <div>
-        {showLoading && 
-          <Spinner animation="border" role="status">
-            <span className="sr-only">Loading...</span>
-          </Spinner> 
-        } 
         <Jumbotron>
-          <Form onSubmit={updateStudent}>
+          <Form onSubmit={onUpdateHandler}>
           <Form.Group>
             <Form.Label> First Name</Form.Label>
             <Form.Control type="text" name="firstName" id="firstName" placeholder="Enter first name" value={student.firstName} onChange={onChange} />
@@ -66,7 +105,7 @@ function EditStudent(props) {
             <Form.Label>City</Form.Label>
             <Form.Control type="text" name="city" id="city" rows="3" placeholder="Enter city" value={student.city} onChange={onChange} />
           </Form.Group>
-          <Form.Group> 
+          <Form.Group>
             <Form.Label>Phone Number</Form.Label>
             <Form.Control type="text" name="phoneNumber" id="phoneNumber" rows="3" placeholder="Enter phone number" value={student.phoneNumber} onChange={onChange} />
           </Form.Group>
@@ -74,8 +113,22 @@ function EditStudent(props) {
             <Form.Label>Email</Form.Label>
             <Form.Control type="text" name="email" id="email" rows="3" placeholder="Enter email" value={student.email} onChange={onChange} />
           </Form.Group>
-          
-          <Button variant="primary" type="submit">
+
+          <Button variant="primary" onClick={() => onUpdateHandler({
+            variables: {studentId: studentId,
+              firstName: student.firstName,
+              lastName: student.lastName,
+              address: student.address,
+              city: student.city,
+              phoneNumber: student.phoneNumber,
+              email: student.email
+            },
+            onCompleted: () => {
+              setShowLoading(false);
+              props.history.push('/show/' + studentId);
+              window.location.reload();
+            }
+          })}>
             Update
           </Button>
         </Form>
@@ -83,6 +136,5 @@ function EditStudent(props) {
       </div>
     );
   }
-  
+
   export default withRouter(EditStudent);
-  

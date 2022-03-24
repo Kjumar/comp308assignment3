@@ -84,4 +84,4 @@ StudentSchema.set('toJSON', {
 	virtuals: true
 });
 
-mongoose.model('Student', StudentSchema);
+module.exports = mongoose.model('Student', StudentSchema);

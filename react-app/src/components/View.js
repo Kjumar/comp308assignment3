@@ -1,49 +1,67 @@
 import CreateCourse from './CreateCourse';
+import { withRouter } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {ListGroup, Spinner, Jumbotron, Button, ButtonGroup, ToggleButton} from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+import { useAuthToken, useAuthUserToken, useLogout } from "../config/auth";
+import {gql, useQuery, useMutation} from "@apollo/client";
+
+const GET_COURSES = gql`
+query enrolledCourses($studentId: String!) {
+    enrolledCourses(id: $studentId) {
+      id
+      courseCode
+      courseName
+      semester
+      section
+    }
+}
+`;
+
+const GET_STUDENT = gql`
+query student($studentId: String!) {
+  student(id: $studentId) {
+    id
+    studentNumber
+    firstName
+    lastName
+  }
+}
+`;
+
+const REMOVE_COURSE = gql`
+mutation unenrollStudent($studentId: String!, $courseId: String!) {
+    unenrollStudent(studentId: $studentId, courseId: $courseId) {
+        id
+        studentNumber
+    }
+}
+`;
+
 function View (props) {
     const { screen, setScreen, name, setName} = props;
-    const [data, setData] = useState();
+    const [student, setStudent] = useState({id: '', studentNumber: '', firstName: '', lastName: ''});
     const [course, setCourse] = useState('');
     const [courses, setCourses] = useState([]);
     const [deleteMode, setDeleteMode] = useState(false);
 
-    const deleteCookie = async () => {
-        try {
-            await axios.get('/signout');
-            setScreen('auth');
-        } catch (e) {
-            console.log(e);
-        }
-    };
+    const [authToken] = useAuthToken()
+    const [authUserToken] = useAuthUserToken()
+    console.log(authUserToken);
+    const logout = useLogout();
 
-    const verifyCookie = async () => {
-        axios.get('/welcome')
-            .then(result => {
-                console.log(result.data);
-                setData(result.data);
-            }).catch((error) => {
-                console.log(error);
-            });
-    };
+    const { loading, error, data, refetch } = useQuery(GET_COURSES, {variables: { studentId: authUserToken }});
 
-    const listCourses = (studentNumber) => {
-        console.log('in listCourses: ', screen);
-        if (screen !== 'auth' && screen !== undefined)
-        {
-            axios.put('/api/listcourses', { studentNumber: screen})
-                .then(result => {
-                    console.log(result.data);
-                    if (result.data !== null) { setCourses(result.data); }
-                    else { setCourses([]); }
-                }).catch((error) => {
-                    console.log(error);
-                });
+    useQuery(GET_STUDENT, {
+        variables: {studentId: authUserToken },
+        onCompleted: (result) => {
+            setStudent(result.student);
         }
-    };
+    })
+
+    const [onHandleUnenroll] = useMutation(REMOVE_COURSE);
 
     const createCourse = () => {
         console.log('in createCourse');
@@ -53,33 +71,33 @@ function View (props) {
     const showCourseDetail = (id) => {
         if (deleteMode)
         {
-            axios.put('/api/removecourse', {courseId: id, studentNumber: data})
-                .then(result => {
-                    console.log(result.data);
-                    listCourses(screen);
-                }).catch((error) => {
-                    console.log(error);
-                });
+            onHandleUnenroll({
+                variables: {studentId: authUserToken, courseId: id},
+            }).then(() => {
+                refetch();
+            }).catch((err) => {
+                console.log(err);
+            })
+        }
+        else
+        {
+            props.history.push({
+                pathname: '/showcourse/' + id
+              });
         }
     };
-
-    useEffect(() => {
-        verifyCookie();
-      }, []); //only the first render
 
     return (
         <div className="App">
         {course !== 'y'
             ? <Jumbotron className="text-center">
-                <p>{name}</p>
-                <p>{data}</p>
-                <Button variant="primary" onClick={verifyCookie}>Verify Cookie</Button>{' '}
+                <p>{student.firstName} {student.lastName}</p>
                 <Button variant="primary" onClick={createCourse}>Create Course</Button>{' '}
-                <Button variant="primary" onClick={() => listCourses(data)}>List Courses</Button>{' '}
+                <Button variant="primary" onClick={() => {}}>List Courses</Button>{' '}
 
-                <Button variant="info" onClick={deleteCookie}>Log out</Button>
+                <Button variant="info" onClick={logout}>Log out</Button>
 
-                {courses.length !== 0
+                {(data && data.enrolledCourses && data.enrolledCourses.length !== 0)
                     ?
                     <Jumbotron>
                         <ButtonGroup toggle className="mb-2">
@@ -94,8 +112,8 @@ function View (props) {
                             </ToggleButton>
                         </ButtonGroup>
                         <ListGroup>
-                            {courses.map((item, idx) => (
-                            <ListGroup.Item key={idx} action onClick={() => { showCourseDetail(item._id) }}>
+                            {data.enrolledCourses.map((item, idx) => (
+                            <ListGroup.Item key={idx} action onClick={() => { showCourseDetail(item.id) }}>
                                 {item.courseCode} - {item.courseName} - {item.semester} - Sec. {item.section}
                             </ListGroup.Item>
                             ))}
@@ -113,4 +131,4 @@ function View (props) {
     );
 }
 
-export default View;
+export default withRouter(View);

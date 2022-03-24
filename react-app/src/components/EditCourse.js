@@ -2,43 +2,84 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {Spinner, Jumbotron, Form, Button} from 'react-bootstrap';
 import { withRouter } from 'react-router-dom';
+import Login from './Login';
+
+import { useAuthToken, useAuthUserToken } from "../config/auth";
+import {gql, useQuery, useMutation} from "@apollo/client";
+
+const GET_COURSE = gql`
+  query course($courseId: String!) {
+    course(id: $courseId) {
+      id
+      courseCode
+      courseName
+      section
+      semester
+    }
+  }
+`;
+
+const UPDATE_COURSE = gql`
+  mutation updateCourse($courseId: String!, $courseCode: String!, $courseName: String!, $section: Int!, $semester: String!){
+    updateCourse(id: $courseId, courseCode: $courseCode, courseName: $courseName, section: $section, semester: $semester){
+      courseCode
+      courseName
+      section
+      semester
+    }
+  }
+`;
+
 
 function EditCourse(props) {
-    const [course, setCourse] = useState({ _id: '', courseCode: '', courseName: '', 
-                section: '', semester: '' });  
-    const [showLoading, setShowLoading] = useState(true);
+    const [showLoading, setShowLoading] = useState(false);
     const apiUrl = "http://localhost:3000/api/courses/" + props.match.params.id;
+    const courseId = props.match.params.id;
 
-    //runs only once after the first render
-    useEffect(() => {
-      setShowLoading(false);
-      //call api
-      const fetchData = async () => {
-        const result = await axios(apiUrl);
-        setCourse(result.data);
-        console.log(result.data);
-        setShowLoading(false);
-      };
-  
-      fetchData();
-    }, [apiUrl]);
-  
-    const updateCourse = (e) => {
-      setShowLoading(true);
-      e.preventDefault();
-      const data = { _id: course._id, courseCode: course.courseCode, courseName: course.courseName, section: course.section, semester: course.semester };
-      axios.put(apiUrl, data)
-        .then((result) => {
-          setShowLoading(false);
-          props.history.push('/showcourse/' + result.data._id)
-        }).catch((error) => setShowLoading(false));
-    };
+    const [authToken] = useAuthToken()
+    const [authUserToken] = useAuthUserToken()
+
+    const { loading, error, data } = useQuery(GET_COURSE, {
+      variables: { courseId: courseId }
+    });
+    const [course, setCourse] = useState(data.course);
+
+    const [onHandleUpdate] = useMutation(UPDATE_COURSE);
+
     //runs when course field is changed
     const onChange = (e) => {
       e.persist();
       setCourse({...course, [e.target.name]: e.target.value});
     }
-  
+
+    if (!authToken)
+    {
+      return (
+        <div>
+          <Login />
+        </div>
+      )
+    }
+
+    if (loading)
+    {
+      return (
+        <div>
+          <Jumbotron>
+            {showLoading && <Spinner animation="border" role="status">
+              <span className="sr-only">Loading...</span>
+            </Spinner> }
+          </Jumbotron>
+        </div>
+      );
+    }
+
+    // TODO: make a nicer error page
+    if (error)
+    {
+      return <p>Error...</p>;
+    }
+
     return (
       <div>
         {showLoading && 
@@ -47,7 +88,7 @@ function EditCourse(props) {
           </Spinner> 
         } 
         <Jumbotron>
-          <Form onSubmit={updateCourse}>
+          <Form>
           <Form.Group>
             <Form.Label> Course Code</Form.Label>
             <Form.Control type="text" name="courseCode" id="courseCode" placeholder="Enter Course Name" value={course.courseName} onChange={onChange} />
@@ -64,11 +105,27 @@ function EditCourse(props) {
             <Form.Label>Semester</Form.Label>
             <Form.Control type="text" name="semester" id="semester" rows="3" placeholder="Enter Semester" value={course.semester} onChange={onChange} />
           </Form.Group>
-          
-          <Button variant="primary" type="submit">
+        </Form>
+          <Button variant="primary" onClick={() => {
+            setShowLoading(true);
+            onHandleUpdate({
+              variables: {
+                courseId: course.id,
+                courseCode: course.courseCode,
+                courseName: course.courseName,
+                section: parseInt(course.section),
+                semester: course.semester
+              }
+            }).then(() => {
+              setShowLoading(false);
+              props.history.push('/showcourse/' + course.id);
+              window.location.reload();
+            }).catch((err) => {
+              console.log(err);
+            })
+          }}>
             Update
           </Button>
-        </Form>
         </Jumbotron>
       </div>
     );
