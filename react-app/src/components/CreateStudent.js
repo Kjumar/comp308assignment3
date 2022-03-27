@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import {Spinner, Form, Button, Container} from 'react-bootstrap';
 import { withRouter } from 'react-router-dom';
 
@@ -24,7 +23,6 @@ function CreateStudent(props) {
   const [student, setStudent] = useState({ studentNumber: '', firstName: '', lastName: '', 
                 address: '', city: '', phoneNumber: '', email: '',password: '' });
   const [showLoading, setShowLoading] = useState(false);
-  const apiUrl = "http://localhost:3000/";
 
   const [onHandleRegister, { loading, err, data }] = useMutation(ADD_STUDENT);
 

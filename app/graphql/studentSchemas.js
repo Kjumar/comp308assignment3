@@ -165,7 +165,6 @@ const queryType = new GraphQLObjectType({
                     {
                         throw new Error('Error');
                     }
-                    console.log(student);
                     return student.courses;
                 }
             },
@@ -262,7 +261,10 @@ const mutation = new GraphQLObjectType({
                         type: new GraphQLNonNull(GraphQLString)
                     }
                 },
-                resolve: function (root, params) {
+                resolve: function (root, params, req) {
+                    if (!req.isAuth) {
+                        throw new Error("Unauthorized");
+                    }
                     const updatedStudent = StudentModel.findByIdAndUpdate(
                         params.id,
                         {
@@ -288,7 +290,10 @@ const mutation = new GraphQLObjectType({
                         type: new GraphQLNonNull(GraphQLString)
                     }
                 },
-                resolve: function (root, params) {
+                resolve: function (root, params, req) {
+                    if (!req.isAuth) {
+                        throw new Error("Unauthorized");
+                    }
                     const deletedStudent = StudentModel.findByIdAndRemove(params.id).exec();
                     if (!deletedStudent) {
                         throw new Error('Error');
@@ -374,7 +379,10 @@ const mutation = new GraphQLObjectType({
                         type: new GraphQLNonNull(GraphQLString)
                     }         
                 },
-                resolve(root, params) {
+                resolve(root, params, req) {
+                    if (!req.isAuth) {
+                        throw new Error("Unauthorized");
+                    }
                     return CourseModel.findByIdAndUpdate(params.id, { courseCode: params.courseCode, 
                         courseName: params.courseName, section: params.section, semester: params.semester
                         }, function (err) {
@@ -389,7 +397,10 @@ const mutation = new GraphQLObjectType({
                         type: new GraphQLNonNull(GraphQLString)
                     }
                 },
-                resolve(root, params) {
+                resolve(root, params, req) {
+                    if (!req.isAuth) {
+                        throw new Error("Unauthorized");
+                    }
                     const deletedCourse = CourseModel.findByIdAndRemove(params.id).exec();
                     if (!deletedCourse) {
                         throw new Error('Error')
@@ -407,7 +418,10 @@ const mutation = new GraphQLObjectType({
                         type: new GraphQLNonNull(GraphQLString)
                     }
                 },
-                resolve: async function (root, params) {
+                resolve: async function (root, params, req) {
+                    if (!req.isAuth) {
+                        throw new Error("Unauthorized");
+                    }
                     const student = await StudentModel.findById(params.studentId).exec();
                     if (!student) {
                         throw new Error('Error');
@@ -442,7 +456,10 @@ const mutation = new GraphQLObjectType({
                         type: new GraphQLNonNull(GraphQLString)
                     }
                 },
-                resolve: async function (root, params) {
+                resolve: async function (root, params, req) {
+                    if (!req.isAuth) {
+                        throw new Error("Unauthorized");
+                    }
                     const student = await StudentModel.findById(params.studentId).populate('courses').exec();
                     if (!student)
                     {

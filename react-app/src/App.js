@@ -17,36 +17,43 @@ import EditStudent from './components/EditStudent';
 import ShowCourse from './components/ShowCourse';
 import ListCourses from './components/ListCourses';
 import EditCourse from './components/EditCourse';
+import { ApolloProvider } from '@apollo/client';
+import { useAppApolloClient } from './config/apolloClient';
+
 
 function App() {
   //
+  const apolloClient = useAppApolloClient();
+  //
   return (
-    <Router>
-      <Navbar bg="dark" variant="dark" expand="lg">
-        <Navbar.Toggle aria-controls="basic-navbar-nav" />
-        <Navbar.Collapse id="basic-navbar-nav">
-          <Nav className="mr-auto">
-            <Nav.Link href="/home">Home</Nav.Link>
-            <Nav.Link href="/login">Login</Nav.Link>
-            <Nav.Link href="/create">Sign Up</Nav.Link>
-            <Nav.Link href="/students">Students</Nav.Link>
-            <Nav.Link href="/courses">Courses</Nav.Link>
-          </Nav>
-        </Navbar.Collapse>
-      </Navbar>
+    <ApolloProvider client={apolloClient}>
+      <Router>
+        <Navbar bg="dark" variant="dark" expand="lg">
+          <Navbar.Toggle aria-controls="basic-navbar-nav" />
+          <Navbar.Collapse id="basic-navbar-nav">
+            <Nav className="mr-auto">
+              <Nav.Link href="/home">Home</Nav.Link>
+              <Nav.Link href="/login">Login</Nav.Link>
+              <Nav.Link href="/create">Sign Up</Nav.Link>
+              <Nav.Link href="/students">Students</Nav.Link>
+              <Nav.Link href="/courses">Courses</Nav.Link>
+            </Nav>
+          </Navbar.Collapse>
+        </Navbar>
 
-      <div>
-        <Route render ={()=> < Home />} path="/home" />
-        <Route render ={()=> < Login />} path="/login" />
-        <Route render ={()=> < ListStudents />} path="/students" />
-        <Route render ={()=> < CreateStudent />} path="/create" />
-        <Route render ={()=> < ListCourses />} path="/courses" />
-        <Route render ={()=> < ShowStudent />} path="/show/:id" />
-        <Route render ={()=> < EditStudent />} path="/edit/:id" />
-        <Route render ={()=> < ShowCourse />} path="/showcourse/:id" />
-        <Route render ={()=> < EditCourse />} path="/editcourse/:id" />
-      </div>
-    </Router>
+        <div>
+          <Route render ={()=> < Home />} path="/home" />
+          <Route render ={()=> < Login />} path="/login" />
+          <Route render ={()=> < ListStudents />} path="/students" />
+          <Route render ={()=> < CreateStudent />} path="/create" />
+          <Route render ={()=> < ListCourses />} path="/courses" />
+          <Route render ={()=> < ShowStudent />} path="/show/:id" />
+          <Route render ={()=> < EditStudent />} path="/edit/:id" />
+          <Route render ={()=> < ShowCourse />} path="/showcourse/:id" />
+          <Route render ={()=> < EditCourse />} path="/editcourse/:id" />
+        </div>
+      </Router>
+    </ApolloProvider>
   );
 }
 
