@@ -6,7 +6,6 @@ var mongoose = require('./config/mongoose'),
 
 const { graphqlHTTP } = require('express-graphql');
 var studentSchema = require('./app/graphql/studentSchemas');
-var courseSchema = require('./app/graphql/courseSchemas');
 var cors = require('cors');
 const { verifyToken } = require('./app/helpers/jwt.js');
 
@@ -18,11 +17,6 @@ app.use('*', cors());
 app.use(verifyToken);
 app.use('/graphql', cors(), graphqlHTTP({
     schema: studentSchema,
-    rootValue: global,
-    graphiql: true,
-}));
-app.use('/graphql/courses', cors(), graphqlHTTP({
-    schema: courseSchema,
     rootValue: global,
     graphiql: true,
 }));

@@ -21,6 +21,14 @@ const authMiddleware = (authToken) =>
                 },
             });
         }
+        else
+        {
+            operation.setContext({
+                headers: {
+                    authorization: `Bearer hello`,
+                },
+            });
+        }
         return forward(operation);
     });
 
