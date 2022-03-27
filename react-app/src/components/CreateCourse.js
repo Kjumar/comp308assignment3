@@ -1,4 +1,3 @@
-import axios from 'axios';
 import {Spinner, Jumbotron, Form, Button} from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { withRouter } from 'react-router-dom';

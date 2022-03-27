@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {ListGroup, Spinner, Jumbotron} from 'react-bootstrap';
 import { withRouter } from 'react-router-dom';
-import Login from './Login';
 
 import {gql, useQuery, useMutation} from "@apollo/client";
 
@@ -20,29 +18,8 @@ const GET_COURSES = gql`
 
 function ListCourses(props) {
   const [showLoading, setShowLoading] = useState(false);
-  const apiUrl = "http://localhost:5000/api/courses";
 
-  const { loading, error, data, refresh } = useQuery(GET_COURSES);
-
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     axios.get(apiUrl)
-  //       .then(result => {
-  //         console.log('result.data:',result.data)
-  //         //check if the user has logged in
-  //         //if(result.data.screen !== 'auth')
-  //         //{
-            
-  //           console.log('data in if:', result.data )
-  //           setData(result.data);
-  //           setShowLoading(false);
-  //         //}
-  //       }).catch((error) => {
-  //         console.log('error in fetchData:', error)
-  //       });
-  //     };  
-  //   fetchData();
-  // }, []);
+  const { loading, error, data, refetch } = useQuery(GET_COURSES);
 
   const showDetail = (id) => {
     props.history.push({

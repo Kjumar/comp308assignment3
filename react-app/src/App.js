@@ -17,7 +17,6 @@ import EditStudent from './components/EditStudent';
 import ShowCourse from './components/ShowCourse';
 import ListCourses from './components/ListCourses';
 import EditCourse from './components/EditCourse';
-import { ApolloClient, InMemoryCache } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client';
 import { useAppApolloClient } from './config/apolloClient';
 

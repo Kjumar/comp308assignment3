@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {Spinner, Jumbotron, Form, Button} from 'react-bootstrap';
 import { withRouter } from 'react-router-dom';
 import Login from './Login';
@@ -37,7 +36,6 @@ const UPDATE_STUDENT = gql`
 
 function EditStudent(props) {
     const [showLoading, setShowLoading] = useState(false);
-    const apiUrl = "http://localhost:3000/students/" + props.match.params.id;
     const studentId = props.match.params.id;
 
     const [authToken] = useAuthToken()

@@ -1,7 +1,6 @@
 import CreateCourse from './CreateCourse';
 import { withRouter } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {ListGroup, Spinner, Jumbotron, Button, ButtonGroup, ToggleButton} from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -44,7 +43,6 @@ function View (props) {
     const { screen, setScreen, name, setName} = props;
     const [student, setStudent] = useState({id: '', studentNumber: '', firstName: '', lastName: ''});
     const [course, setCourse] = useState('');
-    const [courses, setCourses] = useState([]);
     const [deleteMode, setDeleteMode] = useState(false);
 
     const [authToken] = useAuthToken()

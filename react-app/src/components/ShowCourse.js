@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {Spinner, Jumbotron, Button, ListGroup} from 'react-bootstrap';
 import { withRouter } from 'react-router-dom';
 
@@ -49,7 +48,6 @@ query enrolledStudents($courseId: String!) {
 `;
 
 function ShowCourse(props) {
-  const [screen, setScreen] = useState('auth');
   const [showLoading, setShowLoading] = useState(false);
   const [students, setStudents] = useState([]);
   const courseId = props.match.params.id;
