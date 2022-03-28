@@ -90,11 +90,11 @@ function EditCourse(props) {
           <Form>
           <Form.Group>
             <Form.Label> Course Code</Form.Label>
-            <Form.Control type="text" name="courseCode" id="courseCode" placeholder="Enter Course Name" value={course.courseName} onChange={onChange} />
+            <Form.Control type="text" name="courseCode" id="courseCode" placeholder="Enter Course Name" value={course.courseCode} onChange={onChange} />
           </Form.Group>
           <Form.Group>
             <Form.Label> Course Name</Form.Label>
-            <Form.Control type="text" name="courseName" id="courseName" placeholder="Enter Course Code" value={course.courseCode} onChange={onChange} />
+            <Form.Control type="text" name="courseName" id="courseName" placeholder="Enter Course Code" value={course.courseName} onChange={onChange} />
           </Form.Group>
           <Form.Group>
             <Form.Label>Section</Form.Label>

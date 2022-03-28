@@ -175,7 +175,10 @@ const queryType = new GraphQLObjectType({
                         type: GraphQLString
                     }
                 },
-                resolve: async function (root, params) {
+                resolve: async function (root, params, req) {
+                    if (!req.isAuth) {
+                        throw new Error("Unauthorized");
+                    }
                     const students = await StudentModel.find({ courses: params.courseId }).exec();
                     if (!students)
                     {
